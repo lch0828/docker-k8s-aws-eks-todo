@@ -1,0 +1,6 @@
+[submodule "kube-state-metrics-configs"]
+	path = kube-state-metrics-configs
+	url = https://github.com/devopscube/kube-state-metrics-configs.git
+[submodule "minikube-deploy/health-monitor-alert/kube-state-metrics-configs"]
+	path = minikube-deploy/health-monitor-alert/kube-state-metrics-configs
+	url = https://github.com/devopscube/kube-state-metrics-configs.git

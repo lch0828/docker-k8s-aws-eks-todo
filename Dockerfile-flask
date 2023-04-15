@@ -1,0 +1,7 @@
+FROM python:alpine3.8
+
+COPY ./ToDo-App-CSGY-9223 /app
+
+WORKDIR /app
+
+RUN pip install --no-cache-dir --upgrade -r requirements.txt

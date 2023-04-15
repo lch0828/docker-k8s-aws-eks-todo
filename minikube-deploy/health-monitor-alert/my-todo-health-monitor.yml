@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-health-monitor
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: my-hm-app
+  template:
+    metadata:
+      labels:
+        app: my-hm-app
+    spec:
+      containers:
+        - name: hm-flask-app
+          image: lch0828/spring-2023-cloud-hw3:app # change version
+          imagePullPolicy: Always
+          env:
+            - name: PYTHONUNBUFFERED
+              value: "0"
+            - name: PORT
+              value: "5000"
+            - name: MONGO_HOST
+              value: "my-db-service"
+            - name: MONGO_INITDB_ROOT_USERNAME
+              value: "root"
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              value: "rootpassword"
+          command: ["python3", "-u", "app.py"]
+          ports:
+            - containerPort: 5000
+          args:
+            - /bin/sh
+            - -c
+            - touch /tmp/healthy; sleep 30; rm -f /tmp/healthy; sleep 600
+          livenessProbe:
+            exec:
+              command:
+              - cat
+              - /tmp/healthy
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          readinessProbe:
+            exec:
+              command:
+              - cat
+              - /tmp/healthy
+            initialDelaySeconds: 5
+            periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-hm-app-service
+spec:
+  selector:
+    app: my-hm-app
+  ports:
+    - name: http
+      protocol: TCP
+      port: 5000
+      targetPort: 5000
+  type: LoadBalancer

@@ -1,0 +1,45 @@
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: my-replication-controller
+spec:
+  replicas: 5
+  selector:
+    app: my-rc-app
+  template:
+    metadata:
+      labels:
+        app: my-rc-app
+    spec:
+      containers:
+        - name: rc-flask-app
+          image: lch0828/spring-2023-cloud-hw3:app
+          imagePullPolicy: Always
+          env:
+            - name: PYTHONUNBUFFERED
+              value: "0"
+            - name: PORT
+              value: "8080"
+            - name: MONGO_HOST
+              value: "my-db-service"
+            - name: MONGO_INITDB_ROOT_USERNAME
+              value: "root"
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              value: "rootpassword"
+          command: ["python3", "-u", "app.py"]
+          ports:
+            - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-rc-app-service
+spec:
+  selector:
+    app: my-rc-app
+  ports:
+    - name: http
+      protocol: TCP
+      port: 8080
+      targetPort: 8080
+  type: LoadBalancer

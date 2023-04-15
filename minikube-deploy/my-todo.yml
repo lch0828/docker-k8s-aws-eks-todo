@@ -1,0 +1,119 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: mongodb-pv
+spec:
+  capacity:
+    storage: 500Mi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: standard
+  hostPath:
+    path: /mnt/data/db
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mongodb-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 250Mi
+  storageClassName: standard
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+        - name: flask-app
+          image: lch0828/spring-2023-cloud-hw3:app
+          imagePullPolicy: Always
+          env:
+            - name: PYTHONUNBUFFERED
+              value: "0"
+            - name: PORT
+              value: "5000"
+            - name: MONGO_HOST
+              value: "my-db-service"
+            - name: MONGO_INITDB_ROOT_USERNAME
+              value: "root"
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              value: "rootpassword"
+          command: ["python3", "-u", "app.py"]
+          ports:
+            - containerPort: 5000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: db
+spec:
+  replicas: 1 # if db has more than 1 replica the pvc wont work cuz it uses lock file mechamism which doesnt allow to db instances.
+  selector:
+    matchLabels:
+      app: my-db
+  template:
+    metadata:
+      labels:
+        app: my-db
+    spec:
+      containers:
+        - name: mongodb
+          image: lch0828/spring-2023-cloud-hw3:db
+          env:
+            - name:  MONGO_INITDB_ROOT_USERNAME
+              value: "root"
+            - name:  MONGO_INITDB_ROOT_PASSWORD
+              value: "rootpassword"
+          volumeMounts:
+            - name: mongodb-data
+              mountPath: /data/db
+          ports:
+            - containerPort: 27017
+      volumes:
+        - name: mongodb-data
+          persistentVolumeClaim:
+            claimName: mongodb-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-app-service
+spec:
+  selector:
+    app: my-app
+  ports:
+    - name: http
+      protocol: TCP
+      port: 5000
+      targetPort: 5000
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-db-service
+spec:
+  selector:
+    app: my-db
+  ports:
+    - name: mongodb
+      protocol: TCP
+      port: 27017
+      targetPort: 27017
+  type: ClusterIP
+
